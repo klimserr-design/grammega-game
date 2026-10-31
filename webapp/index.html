@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body { background: #141028; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+  .box { background: #1b1436; padding: 20px; border-radius: 20px; border: 2px solid #ffd166; }
+  .reel { font-size: 50px; margin: 20px 0; display: flex; justify-content: space-around; }
+  button { background: #ffd166; color: black; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 10px; font-size: 16px; }
+  button:disabled { opacity: 0.5; }
+</style>
+</head>
+<body>
+  <h2>КЕЙС GRAMMEGA</h2>
+  <p>Баланс: <b id="balance">0</b> ⭐</p>
+  <div class="box">
+    <div class="reel" id="reel">📦 | 📦 | 📦</div>
+    <button id="spinBtn" onclick="spin()">ОТКРЫТЬ КЕЙС (50 ⭐)</button>
+    <button onclick="buy()" style="background: #3b82f6; color: white;">💳 Купить 50 ⭐</button>
+  </div>
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready(); tg.expand();
+  async function api(path, body = {}) {
+    const res = await fetch(path, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ initData: tg.initData, ...body }) });
+    return res.json();
+  }
+  async function updateBalance() { const data = await api('/api/me'); if (data.ok) document.getElementById('balance').innerText = data.balance; }
+  async function spin() {
+    const btn = document.getElementById('spinBtn'); btn.disabled = true;
+    document.getElementById('reel').innerText = "🎲 | 🎲 | 🎲";
+    const res = await api('/api/spin');
+    if (!res.ok) { alert(res.error === 'not_enough_stars' ? 'Недостаточно Stars!' : 'Ошибка'); btn.disabled = false; return; }
+    setTimeout(() => { document.getElementById('reel').innerText = `[ ${res.item.name} ]`; updateBalance(); btn.disabled = false; tg.HapticFeedback.notificationOccurred('success'); }, 1500);
+  }
+  async function buy() { const res = await api('/api/invoice'); if (res.ok) { tg.openInvoice(res.link, (status) => { if (status === 'paid') setTimeout(updateBalance, 1000); }); } }
+  updateBalance();
+</script>
+</body>
+</html>
